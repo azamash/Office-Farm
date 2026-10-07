@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Big Eyes Office Farm</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#10404e;--ink:#10272e;--paper:#fff6dc;--pop:#ff6b57;--sun:#ffd23f;--leaf:#3fb56a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b2d37}}
+:root[data-theme="dark"]{--bg:#0b2d37}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--paper);font-family:"Baloo 2",system-ui,sans-serif;min-height:100vh}
+main{max-width:480px;margin:0 auto;padding:16px}
+h1{font-size:30px;line-height:1.05;margin:8px 0 4px;font-weight:800}
+p{margin:0 0 12px;opacity:.9}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.card{background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:18px;padding:8px;text-align:center;cursor:pointer;font:inherit;box-shadow:0 4px 0 var(--ink)}
+.card:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.card b{display:block;font-size:14px}
+.card svg{width:100%;height:auto;border-radius:12px;display:block}
+.job{display:flex;gap:12px;align-items:center;text-align:left;width:100%;margin-bottom:10px;padding:12px 14px}
+.job span{font-size:34px}
+.job small{display:block;font-weight:500;opacity:.8}
+.top{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.top svg{width:64px;border-radius:14px;border:3px solid var(--ink);background:var(--paper)}
+.coins{font-size:30px;font-weight:800;color:var(--sun);line-height:1}
+.rank{font-size:14px;opacity:.85}
+.bar{height:8px;background:#0006;border-radius:6px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--sun);width:0}
+.plot{aspect-ratio:1;font-size:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.plot em{position:absolute;left:0;bottom:0;height:7px;background:var(--leaf);width:0;font-size:0}
+.plot.ready{background:var(--sun);animation:b .6s infinite alternate}
+.plot.lock{background:#0003;color:var(--paper);border-style:dashed;font-size:13px;box-shadow:none}
+@keyframes b{to{transform:scale(1.05)}}
+@media (prefers-reduced-motion:reduce){.plot.ready{animation:none}}
+.up{display:flex;justify-content:space-between;align-items:center;width:100%;margin-top:10px;padding:10px 14px;text-align:left;font-weight:700}
+.up[disabled]{opacity:.5;cursor:not-allowed}
+.up small{font-weight:500;display:block}
+.btn{background:var(--pop);color:#fff;border:3px solid var(--ink);border-radius:14px;padding:10px 16px;font:inherit;font-weight:800;cursor:pointer;box-shadow:0 4px 0 var(--ink);width:100%;margin-top:14px}
+.float{position:fixed;pointer-events:none;font-weight:800;color:var(--sun);animation:f .8s forwards;text-shadow:0 2px 0 #000}
+@keyframes f{to{transform:translateY(-50px);opacity:0}}
+.boss{position:fixed;left:16px;right:16px;width:auto;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:9;background:#e32b2b}
+.tip{font-size:13px;opacity:.75;margin-top:10px}
+</style></head><body><main id="app"></main>
+<script>
+const eye=(g)=>`<ellipse cx="42" cy="52" rx="24" ry="27" fill="#fff" stroke="#111" stroke-width="2.5"/><ellipse cx="78" cy="52" rx="24" ry="27" fill="#fff" stroke="#111" stroke-width="2.5"/><path d="M33 40h22l-3 22H30zM69 40h22l-3 22H66z" fill="#161616"/><g fill="#fff" font-size="13" font-weight="800" text-anchor="middle"><text x="42" y="56">${g}</text><text x="78" y="56">${g}</text></g>`;
+const CH=[
+{n:'Cowboy',bg:'#3a8aa8',b:'#f4f4f4',g:'—',a:'<path d="M18 36Q60-14 102 36Q60 26 18 36Z" fill="#8a5a2b" stroke="#111" stroke-width="2"/><circle cx="40" cy="108" r="7" fill="#222"/><circle cx="82" cy="115" r="8" fill="#222"/>'},
+{n:'Bow Girl',bg:'#ff8a7a',b:'#b3262c',g:'✕',a:'<path d="M60 86l-16-9v18zM60 86l16-9v18z" fill="#e23b3b" stroke="#111" stroke-width="2"/>'},
+{n:'Devil',bg:'#ffe28a',b:'#444',g:'…',a:'<path d="M26 34Q20 14 32 10Q34 26 40 30zM94 34Q100 14 88 10Q86 26 80 30z" fill="#e32b2b" stroke="#111" stroke-width="2"/>'},
+{n:'Hazmat',bg:'#6b7285',b:'repeating-linear-gradient(#222,#222)',g:'☢',a:'<rect x="22" y="22" width="76" height="12" fill="#ffd23f" stroke="#111" stroke-width="2"/><path d="M30 22l8 12M46 22l8 12M62 22l8 12M78 22l8 12" stroke="#111" stroke-width="3"/>'},
+{n:'Angel',bg:'#f5eedd',b:'#2b4aa0',g:'+',a:'<ellipse cx="60" cy="14" rx="26" ry="6" fill="none" stroke="#ffd23f" stroke-width="5"/>'},
+{n:'Beret',bg:'#b8e866',b:'#3aa0e0',g:'▾',a:'<path d="M18 38Q22 6 62 8Q100 8 102 36Q60 28 18 38Z" fill="#c8302d" stroke="#111" stroke-width="2"/><circle cx="62" cy="6" r="4" fill="#c8302d"/>'}
+];
+const face=i=>{const c=CH[i];return `<svg viewBox="0 0 120 130"><rect width="120" height="130" fill="${c.bg}"/><path d="M26 130Q26 92 60 88Q94 92 94 130Z" fill="${c.b.startsWith('rep')?'#333':c.b}" stroke="#111" stroke-width="2.5"/>${eye(c.g)}${c.a}</svg>`};
+const JOBS=[
+{id:'intern',e:'☕',n:'Intern',d:'Fast & easy: tiny coins, quick growth',t:3000,y:6,c:1},
+{id:'farmer',e:'🪴',n:'Desk Farmer',d:'Balanced: grow desk plants, harvest coins',t:7000,y:22,c:4},
+{id:'manager',e:'💼',n:'Manager',d:'Slow but big payouts',t:12000,y:55,c:12}];
+const RANKS=[[0,'Intern'],[100,'Clerk'],[500,'Supervisor'],[2000,'Manager'],[8000,'Big Boss']];
+let S=null,$=document.getElementById('app');
+try{S=JSON.parse(localStorage.getItem('bigeyes')||'null')}catch(e){}
+const save=()=>{try{localStorage.setItem('bigeyes',JSON.stringify(S))}catch(e){}};
+const fmt=n=>n>=1e4?(n/1e3).toFixed(1)+'k':Math.floor(n);
+function pick(){
+ $.innerHTML=`<h1>Big Eyes Office Farm</h1><p>Pick your character and start your office career.</p><div class="grid">${CH.map((c,i)=>`<button class="card" onclick="chooseChar(${i})">${face(i)}<b>${c.n}</b></button>`).join('')}</div>`}
+function chooseChar(i){S={ch:i,job:null,coins:10,total:0,np:3,sp:0,yl:0,auto:0,p:[]};jobs()}
+function jobs(){
+ $.innerHTML=`<h1>Choose your first job</h1><p>New here? Start as an Intern. You can try other jobs later.</p>${JOBS.map(j=>`<button class="card job" onclick="chooseJob('${j.id}')"><span>${j.e}</span><div><b>${j.n}</b><small>${j.d}</small></div></button>`).join('')}`}
+function chooseJob(id){S.job=id;S.p=Array.from({length:9},()=>({s:0,r:0}));save();farm()}
+const J=()=>JOBS.find(j=>j.id===S.job);
+const gt=()=>J().t*Math.pow(.85,S.sp);
+const gy=()=>Math.round(J().y*(1+.25*S.yl));
+const cost=k=>Math.round({sp:30*Math.pow(1.8,S.sp),yl:40*Math.pow(1.9,S.yl),np:25*Math.pow(2,S.np-3),au:150}[k]);
+function farm(){
+ $.innerHTML=`<div class="top">${face(S.ch)}<div style="flex:1"><div class="coins" id="co"></div><div class="rank" id="rk"></div><div class="bar"><i id="rb"></i></div></div></div>
+ <div class="grid" id="pl"></div><p class="tip">Tap an empty desk to plant. When it glows yellow, tap to collect coins.</p><div id="ups"></div>
+ <button class="btn" onclick="share()">Challenge a friend</button><button class="btn" style="background:var(--paper);color:var(--ink)" onclick="if(confirm('Start a new game? Your progress will be lost.')){S=null;save();pick()}">New character / job</button>`;
+ const d=new Date().toDateString();if(S.day!==d){S.day=d;S.coins+=50;save();setTimeout(()=>alert('Daily bonus: +50 coins!'),300)}
+ build();ui()}
+function build(){
+ const g=document.getElementById('pl');
+ g.innerHTML=S.p.map((p,i)=>i<S.np?`<button class="card plot" id="p${i}" onclick="tap(${i},event)"><span></span><em></em></button>`:`<button class="card plot lock" id="p${i}" onclick="buy('np')">Unlock<br>${fmt(cost('np'))}</button>`).join('');
+ const u=[['sp','Faster growth','Plants grow faster'],['yl','Bigger harvest','+25% coins per harvest'],['np','New desk','One more plot']];
+ let h=u.map(([k,n,d])=>`<button class="card up" id="u${k}" onclick="buy('${k}')"><div>${n}<small>${d}</small></div><b>${fmt(cost(k))}</b></button>`).join('');
+ h+=S.auto?'':`<button class="card up" id="uau" onclick="buy('au')"><div>Hire an assistant<small>Harvests and replants automatically</small></div><b>150</b></button>`;
+ document.getElementById('ups').innerHTML=h}
+function tap(i,e){const p=S.p[i];
+ if(p.s==0&&S.coins>=J().c){S.coins-=J().c;p.s=1;p.r=Date.now()+gt()}
+ else if(p.s==2)harvest(i,e)
+ save();ui()}
+function harvest(i,e){const p=S.p[i],y=gy();p.s=0;S.coins+=y;S.total+=y;
+ const f=document.createElement('div');f.className='float';f.textContent='+'+y;
+ const r=document.getElementById('p'+i).getBoundingClientRect();f.style.left=r.left+r.width/2-10+'px';f.style.top=r.top+'px';document.body.appendChild(f);setTimeout(()=>f.remove(),800)}
+function buy(k){const c=cost(k);if(S.coins<c)return;S.coins-=c;
+ if(k=='np')S.np=Math.min(9,S.np+1);else if(k=='au')S.auto=1;else S[k]++;
+ save();build();ui()}
+function ui(){
+ document.getElementById('co').textContent='🪙 '+fmt(S.coins);
+ let ri=0;RANKS.forEach((r,i)=>{if(S.total>=r[0])ri=i});
+ document.getElementById('rk').textContent='Rank: '+RANKS[ri][1];
+ const n=RANKS[ri+1];document.getElementById('rb').style.width=(n?(S.total-RANKS[ri][0])/(n[0]-RANKS[ri][0])*100:100)+'%';
+ S.p.forEach((p,i)=>{const el=document.getElementById('p'+i);if(!el||i>=S.np)return;
+  el.className='card plot'+(p.s==2?' ready':'');
+  el.firstChild.textContent=p.s==0?'🟫':p.s==1?'🌱':'🪴';
+  el.lastChild.style.width=p.s==1?Math.min(100,100-(p.r-Date.now())/gt()*100)+'%':'0'});
+ ['sp','yl','np'].forEach(k=>{const b=document.getElementById('u'+k);if(b)b.disabled=S.coins<cost(k)||(k=='np'&&S.np>=9)});
+ const a=document.getElementById('uau');if(a)a.disabled=S.coins<150}
+setInterval(()=>{if(!S||!S.job)return;let ch=0;
+ S.p.slice(0,S.np).forEach((p,i)=>{if(p.s==1&&Date.now()>=p.r){p.s=2;ch=1}
+  if(S.auto&&p.s==2){harvest(i);if(S.coins>=J().c){S.coins-=J().c;p.s=1;p.r=Date.now()+gt()}ch=1}});
+ if(ch)save();ui()},250);
+let boss=null;
+setInterval(()=>{if(!S||!S.job||boss||Math.random()>.12)return;
+ const b=document.createElement('button');b.className='btn boss';b.textContent='👀 The boss is coming! Tap now!';document.body.appendChild(b);boss=b;
+ const done=()=>{b.remove();boss=null};
+ const t=setTimeout(()=>{b.onclick=null;const l=Math.floor(S.coins*.1);S.coins-=l;save();ui();b.textContent='Caught by the boss! -'+l+' coins';setTimeout(done,1500)},3000);
+ b.onclick=()=>{clearTimeout(t);b.onclick=null;S.coins+=5;ui();b.textContent='Safe! +5 coins';setTimeout(done,800)}},5000);
+function share(){const t=`I just became ${RANKS.filter(r=>S.total>=r[0]).pop()[1]} in Big Eyes Office Farm and earned ${fmt(S.total)} coins! Can you beat me?`;
+ if(navigator.share)navigator.share({title:'Big Eyes Office Farm',text:t,url:location.href}).catch(()=>{});
+ else try{navigator.clipboard.writeText(t+' '+location.href);alert('Link copied!')}catch(e){alert(t)}}
+if(S&&S.job&&S.p.length)farm();else if(S&&S.ch!=null&&!S.job)jobs();else pick();
+</script></body></html>
